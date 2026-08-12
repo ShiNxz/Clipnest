@@ -1,0 +1,36 @@
+{
+	"name": "frontend",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start",
+		"lint": "next lint"
+	},
+	"dependencies": {
+		"@kirklin/reset-css": "^0.0.3",
+		"@mantine/core": "^7.13.4",
+		"@mantine/hooks": "^7.13.4",
+		"@mantine/notifications": "^7.13.4",
+		"autoprefixer": "10.4.20",
+		"backend-api": "workspace:*",
+		"next": "14.2.15",
+		"postcss": "8.4.47",
+		"react": "18.3.1",
+		"react-dom": "18.3.1",
+		"react-dropzone": "^14.3.5",
+		"react-icons": "^5.3.0",
+		"react-player": "^2.16.0",
+		"sass": "^1.80.4",
+		"shared": "workspace:*",
+		"swr": "^2.2.5",
+		"tailwindcss": "3.4.14"
+	},
+	"devDependencies": {
+		"@types/node": "20.16.13",
+		"@types/react": "18.3.11",
+		"@types/react-dom": "18.3.1",
+		"typescript": "5.6.3"
+	}
+}

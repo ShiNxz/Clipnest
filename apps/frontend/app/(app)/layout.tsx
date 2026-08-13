@@ -32,7 +32,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
 	return (
 		<div className="min-h-screen">
 			<Header user={user} />
-			<main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+			<main className="mx-auto max-w-3xl px-4 py-6">{children}</main>
 		</div>
 	)
 }

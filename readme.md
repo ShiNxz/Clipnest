@@ -42,9 +42,9 @@ log in and click around — see below.
 | Route | Who | What |
 | --- | --- | --- |
 | `/login` | anyone | Pick your name from a searchable dropdown, type your password |
-| `/` | logged in | The feed — Instagram-style column or 4-column grid, click anything for fullscreen |
+| `/` | logged in | The feed — Instagram-style column or 4-column grid, click anything for fullscreen. Like it, comment on it |
 | `/upload` | logged in | Drop clips and memes, caption each one, watch the progress bars |
-| `/admin` | admins | Every clip (with delete), every user (create, reset password, promote, delete) |
+| `/admin` | admins | Every clip (with delete), every user (create, reset password, promote, delete), and what the site is called |
 | `/docs` (API) | anyone | Swagger for the whole API |
 
 **Fullscreen viewer** — click a post to open it over the page. Arrow keys move
@@ -53,6 +53,45 @@ a plain contain-fit.
 
 **Grid vs feed** — the toggle lives at the top right of the feed and is
 remembered per browser in `localStorage`.
+
+**Sorting** — the dropdown next to it reorders the feed: recently uploaded (the
+default), most liked, most commented, or oldest first. Each order pages
+independently, and the feed loads the next page as you approach the bottom
+rather than making you ask for it.
+
+### Likes and comments
+
+The heart is one like per person — the `(post, user)` pair is the primary key,
+so a double-click can't count twice. **Hover the like count** and a card lists
+who liked it, with their avatars; past a dozen it says "and N more". Comments
+have their own smaller heart, and the same hover card.
+
+Every post in the feed shows its whole thread, with the box to add to it. The
+threads travel *with* the feed — one query for the page, not one per card — so
+showing them all costs a few kilobytes rather than twelve round trips. The
+fullscreen viewer deliberately leaves them out: it's there to give the clip the
+screen.
+
+You can delete your own comments, anything said under your own post, and admins
+can delete anything.
+
+Likes are optimistic: the heart moves on the click and reverts if the request
+fails, rather than waiting on the server to redraw itself.
+
+### Naming the site
+
+`/admin` → **Site** sets the name and tagline, so an install can be dedicated to
+one group — or one party — instead of being called Clipnest. The name shows up in
+the header, on the login screen and in the browser tab; the tagline sits under
+the name on `/login`. Both go into the page metadata (`description`,
+`og:*`, `twitter:*`), which is what a chat app shows when someone pastes the
+link.
+
+They live in a one-row `settings` table, not in the environment: `WEBSITE_NAME`
+is inlined into the Next bundle at build time, so changing it would mean a
+rebuild. This is read per request instead — save, and the next page load has it.
+`GET /settings` is public (the login screen and crawlers both need it before
+there's a session); only admins can `PATCH` it.
 
 ---
 
@@ -134,7 +173,10 @@ fails, with a message saying what's missing.
 
 ## Database
 
-Postgres, through Drizzle. Two tables: `users` and `posts`.
+Postgres, through Drizzle. `users` and `posts`, with `post_likes`, `comments`
+and `comment_likes` hanging off them — every one cascades, so deleting a post
+(or the person who made it) takes the likes and the thread with it. Plus
+`settings`, which is one row holding the site's name and tagline.
 
 **In production**, set `DATABASE_URL` and you're on a normal Postgres server.
 
@@ -167,7 +209,7 @@ After editing `db/schema.ts`, run `bun run db:generate` to write a new migration
 | Variable | Notes |
 | --- | --- |
 | `API` | Backend URL. **Inlined at build time** — a production build must be made with the production value. |
-| `WEBSITE_NAME` | Browser tab title. |
+| `WEBSITE_NAME` | Fallback site name, used until an admin sets one in `/admin` → Site. |
 
 ### Cookies across domains
 
@@ -190,7 +232,7 @@ apps/
     app.ts            Entrypoint — migrations, seed, middleware, routes
     db/               Drizzle schema, driver switch, migrations, seed
     middlewares/      isAuth / isAdmin
-    routes/           auth · posts · uploads · admin
+    routes/           auth · posts · uploads · admin · settings
     utils/lib/r2/     R2 client, presigning, reads, best-effort cleanup
   frontend/           Next.js site
     app/(app)/        Everything behind the auth guard (feed, upload, admin)
@@ -219,6 +261,10 @@ its own response shape. Change a route, and the frontend stops compiling.
 - **Dimensions and duration** are measured in the browser before upload, since
   the server never sees the bytes. If the browser can't decode a file, the post
   is still created without them.
-- **Feed paging** uses a `(createdAt, id)` keyset cursor, so posting while
-  someone scrolls never duplicates or skips an item — including when several
-  uploads land on the same millisecond.
+- **Feed paging** uses a keyset cursor holding the exact tuple its sort walks —
+  `(createdAt, id)`, or `(likes, createdAt, id)` for the ranked orders — so
+  posting or liking while someone scrolls never duplicates or skips an item,
+  including when several uploads land on the same millisecond or a dozen posts
+  have the same number of likes. The orders themselves live in
+  `packages/shared/feed.ts`: the API validates against that list and the
+  dropdown is built from it, so adding one is a single edit.

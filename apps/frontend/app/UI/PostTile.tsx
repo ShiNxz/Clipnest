@@ -3,7 +3,7 @@
 import type { Post } from '@/app/(app)/Hooks/useFeed'
 import Avatar from '@/app/UI/Avatar'
 import { formatDuration } from '@/utils/format'
-import { IoPlay } from 'react-icons/io5'
+import { IoChatbubble, IoHeart, IoPlay } from 'react-icons/io5'
 
 type Props = {
 	post: Post
@@ -48,6 +48,23 @@ const PostTile = ({ post, onOpen }: Props) => {
 			<div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center gap-2 bg-gradient-to-t from-black/85 to-transparent p-2 pt-8 opacity-0 transition group-hover:opacity-100">
 				<Avatar src={post.author.avatarUrl} name={post.author.name} size={22} />
 				<span className="truncate text-left text-xs font-medium text-white">{post.caption || post.author.name}</span>
+
+				{(post.likeCount > 0 || post.commentCount > 0) && (
+					<span className="ml-auto flex shrink-0 items-center gap-2 text-[11px] font-medium text-white">
+						{post.likeCount > 0 && (
+							<span className="flex items-center gap-1">
+								<IoHeart size={12} className={post.likedByMe ? 'text-rose-500' : undefined} />
+								{post.likeCount}
+							</span>
+						)}
+						{post.commentCount > 0 && (
+							<span className="flex items-center gap-1">
+								<IoChatbubble size={11} />
+								{post.commentCount}
+							</span>
+						)}
+					</span>
+				)}
 			</div>
 		</button>
 	)

@@ -56,3 +56,13 @@ export const deleteUser = async (id: string) => {
 	const { error } = await eden.admin.users({ id }).delete()
 	if (error) throw new Error(messageOf(error, 'Could not delete the user'))
 }
+
+/**
+ * Rename the site. Reading the settings is public — it's `/settings`, not
+ * `/admin/settings` — but only an admin gets to write them.
+ */
+export const updateSettings = async (input: { title?: string; description?: string }) => {
+	const { data, error } = await eden.settings.index.patch(input)
+	if (error) throw new Error(messageOf(error, 'Could not save the site details'))
+	return data
+}

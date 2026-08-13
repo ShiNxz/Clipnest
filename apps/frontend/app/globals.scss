@@ -49,6 +49,15 @@ video {
 	background-color: #000;
 }
 
+// Tailwind's preflight is off (Mantine ships its own reset) and neither reset
+// touches the UA's `ButtonFace` background — so a bare icon button renders as a
+// grey box on the dark page. Mantine's own controls set their background and
+// border on a class, which outranks this element selector and is untouched.
+button {
+	background: transparent;
+	border: none;
+}
+
 .no-scrollbar {
 	-ms-overflow-style: none;
 	scrollbar-width: none;

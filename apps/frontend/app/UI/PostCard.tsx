@@ -1,8 +1,10 @@
 'use client'
 
-import type { Post } from '@/app/(app)/Hooks/useFeed'
+import type { Comment, Post } from '@/app/(app)/Hooks/useFeed'
 import Avatar from '@/app/UI/Avatar'
-import { formatBytes, formatDuration, timeAgo } from '@/utils/format'
+import Comments from '@/app/UI/Comments'
+import LikeButton from '@/app/UI/LikeButton'
+import { timeAgo } from '@/utils/format'
 import { ActionIcon, Menu } from '@mantine/core'
 import { BsThreeDots } from 'react-icons/bs'
 import { IoExpand, IoTrashOutline } from 'react-icons/io5'
@@ -12,12 +14,12 @@ type Props = {
 	canDelete: boolean
 	onOpen: () => void
 	onDelete: () => void
+	onToggleLike: () => void
+	onCommentsChange: (comments: Comment[]) => void
 }
 
-/** One post in the Instagram-style column: author, media, caption. */
-const PostCard = ({ post, canDelete, onOpen, onDelete }: Props) => {
-	const duration = formatDuration(post.duration)
-
+/** One post in the Instagram-style column: author, media, caption, thread. */
+const PostCard = ({ post, canDelete, onOpen, onDelete, onToggleLike, onCommentsChange }: Props) => {
 	return (
 		<article className="overflow-hidden rounded-2xl border border-white/5 bg-ink-900 shadow-lg shadow-black/20">
 			<header className="flex items-center gap-3 px-4 py-3">
@@ -75,14 +77,26 @@ const PostCard = ({ post, canDelete, onOpen, onDelete }: Props) => {
 				</button>
 			</div>
 
-			<footer className="space-y-2 px-4 py-3">
-				{post.caption && <p className="whitespace-pre-wrap text-sm text-slate-200">{post.caption}</p>}
+			<footer className="space-y-3 px-4 py-3">
+				<div className="flex items-start justify-between gap-3">
+					<p className="min-w-0 flex-1 whitespace-pre-wrap text-sm text-slate-200">{post.caption}</p>
 
-				<p className="text-xs text-slate-500">
-					{post.kind === 'video' ? 'Clip' : 'Image'}
-					{duration && ` · ${duration}`}
-					{post.size ? ` · ${formatBytes(post.size)}` : ''}
-				</p>
+					<LikeButton
+						likeCount={post.likeCount}
+						likedByMe={post.likedByMe}
+						likers={post.likers}
+						onToggle={onToggleLike}
+					/>
+				</div>
+
+				<div className="border-t border-white/5 pt-3">
+					<Comments
+						postId={post.id}
+						postAuthorId={post.author.id}
+						comments={post.comments}
+						onChange={onCommentsChange}
+					/>
+				</div>
 			</footer>
 		</article>
 	)

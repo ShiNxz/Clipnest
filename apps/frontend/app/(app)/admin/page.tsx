@@ -3,6 +3,7 @@
 import { deleteAdminPost, deleteUser, updateUser, useAdminPosts, useAdminUsers } from '@/app/(app)/admin/Hooks/useAdmin'
 import Avatar from '@/app/UI/Avatar'
 import NewUserModal from '@/app/UI/NewUserModal'
+import SiteSettingsForm from '@/app/UI/SiteSettingsForm'
 import { formatBytes, formatDuration, timeAgo } from '@/utils/format'
 import useAuth from '@/utils/useAuth'
 import { ActionIcon, Badge, Button, Loader, Menu, Tabs, Tooltip } from '@mantine/core'
@@ -103,6 +104,7 @@ const AdminPage = () => {
 				<Tabs.List>
 					<Tabs.Tab value="clips">Clips {posts ? `(${posts.length})` : ''}</Tabs.Tab>
 					<Tabs.Tab value="users">Users {users ? `(${users.length})` : ''}</Tabs.Tab>
+					<Tabs.Tab value="site">Site</Tabs.Tab>
 				</Tabs.List>
 
 				{/* ------------------------------------------------------------ clips */}
@@ -233,6 +235,11 @@ const AdminPage = () => {
 							))}
 						</div>
 					)}
+				</Tabs.Panel>
+
+				{/* ------------------------------------------------------------- site */}
+				<Tabs.Panel value="site" pt="lg">
+					<SiteSettingsForm />
 				</Tabs.Panel>
 			</Tabs>
 

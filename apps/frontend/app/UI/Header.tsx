@@ -1,6 +1,7 @@
 'use client'
 
 import Avatar from '@/app/UI/Avatar'
+import { useSite } from '@/app/UI/SiteProvider'
 import eden from '@/utils/eden'
 import { AUTH_KEY, type Me } from '@/utils/useAuth'
 import { Menu } from '@mantine/core'
@@ -12,6 +13,7 @@ import { mutate } from 'swr'
 const Header = ({ user }: { user: Me }) => {
 	const pathname = usePathname()
 	const router = useRouter()
+	const { title } = useSite()
 
 	const handleLogout = async () => {
 		await eden.auth.logout.post()
@@ -32,7 +34,7 @@ const Header = ({ user }: { user: Me }) => {
 			<div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4">
 				<Link href="/" className="mr-2 flex items-center gap-2 text-base font-extrabold tracking-tight text-white">
 					<span className="text-lg">🎬</span>
-					<span className="hidden sm:inline">Clipnest</span>
+					<span className="hidden sm:inline">{title}</span>
 				</Link>
 
 				<nav className="flex items-center gap-1">
@@ -57,7 +59,7 @@ const Header = ({ user }: { user: Me }) => {
 				<div className="ml-auto">
 					<Menu position="bottom-end" withArrow>
 						<Menu.Target>
-							<button type="button" className="flex items-center gap-2 rounded-full pl-1 transition hover:opacity-80">
+							<button type="button" className="flex items-center gap-2 rounded-full p-0 transition hover:opacity-80">
 								<Avatar src={user.avatarUrl} name={user.name} size={32} />
 								<span className="hidden pr-1 text-sm font-medium text-slate-300 sm:inline">{user.name}</span>
 							</button>

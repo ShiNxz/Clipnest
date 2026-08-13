@@ -2,6 +2,7 @@
 
 import type { Post } from '@/app/(app)/Hooks/useFeed'
 import Avatar from '@/app/UI/Avatar'
+import LikeButton from '@/app/UI/LikeButton'
 import { timeAgo } from '@/utils/format'
 import dynamic from 'next/dynamic'
 import { useEffect } from 'react'
@@ -15,13 +16,14 @@ type Props = {
 	index: number
 	onClose: () => void
 	onNavigate: (index: number) => void
+	onToggleLike: (post: Post) => void
 }
 
 /**
  * Fullscreen viewer for one post, with the rest of the feed reachable by arrow
  * key so it behaves like a lightbox rather than a dead end.
  */
-const MediaViewer = ({ posts, index, onClose, onNavigate }: Props) => {
+const MediaViewer = ({ posts, index, onClose, onNavigate, onToggleLike }: Props) => {
 	const post = posts[index]
 
 	const hasPrevious = index > 0
@@ -113,12 +115,21 @@ const MediaViewer = ({ posts, index, onClose, onNavigate }: Props) => {
 				)}
 			</div>
 
-			{/* Caption */}
-			{post.caption && (
-				<div className="shrink-0 px-4 py-4 sm:px-6">
-					<p className="mx-auto max-w-3xl whitespace-pre-wrap text-center text-sm text-slate-200">{post.caption}</p>
+			{/* Caption and the heart. The thread stays in the feed — fullscreen is for
+			    looking at the clip, and a scrolling panel of comments would eat the
+			    height it's there to give back. */}
+			<div className="shrink-0 px-4 py-4 sm:px-6">
+				<div className="mx-auto flex max-w-3xl items-start justify-between gap-3">
+					<p className="min-w-0 flex-1 whitespace-pre-wrap text-sm text-slate-200">{post.caption}</p>
+
+					<LikeButton
+						likeCount={post.likeCount}
+						likedByMe={post.likedByMe}
+						likers={post.likers}
+						onToggle={() => onToggleLike(post)}
+					/>
 				</div>
-			)}
+			</div>
 		</div>
 	)
 }

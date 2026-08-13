@@ -6,14 +6,43 @@ import {
 	integer,
 	pgEnum,
 	pgTable,
+	primaryKey,
 	real,
 	text,
 	timestamp,
 	uuid,
 	varchar,
 } from 'drizzle-orm/pg-core'
+import {
+	DEFAULT_SITE_DESCRIPTION,
+	DEFAULT_SITE_TITLE,
+	SITE_DESCRIPTION_MAX_LENGTH,
+	SITE_TITLE_MAX_LENGTH,
+} from 'shared'
 
 export const postKind = pgEnum('post_kind', ['image', 'video'])
+
+/** There is only ever one settings row, and this is its id. */
+export const SETTINGS_ROW_ID = 1
+
+/**
+ * Site-wide settings — a single row, id 1.
+ *
+ * The site's name lives here rather than in the environment because
+ * `WEBSITE_NAME` is inlined into the Next bundle at build time, so changing it
+ * means a rebuild. This is read per request instead: an admin can re-title the
+ * site for their group — or a single party — from /admin and have it show up in
+ * the header, on the login screen and in the page metadata on the next load.
+ */
+export const settings = pgTable('settings', {
+	id: integer('id').primaryKey().default(SETTINGS_ROW_ID),
+	title: varchar('title', { length: SITE_TITLE_MAX_LENGTH }).notNull().default(DEFAULT_SITE_TITLE),
+	/** Tagline under the title on /login, and the meta description for search and link previews. */
+	description: varchar('description', { length: SITE_DESCRIPTION_MAX_LENGTH })
+		.notNull()
+		.default(DEFAULT_SITE_DESCRIPTION),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
 
 export const users = pgTable('users', {
 	id: uuid('id').primaryKey().defaultRandom(),
@@ -59,13 +88,112 @@ export const posts = pgTable(
 	}),
 )
 
+export const postLikes = pgTable(
+	'post_likes',
+	{
+		postId: uuid('post_id')
+			.notNull()
+			.references(() => posts.id, { onDelete: 'cascade' }),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	table => ({
+		/**
+		 * The pair *is* the row — liking twice is the same like. Enforcing that here
+		 * rather than in the route means a double-click that races itself can't
+		 * write two rows and inflate the count.
+		 *
+		 * It also indexes `post_id` on its own (leading column), which is the only
+		 * way likes are ever looked up.
+		 */
+		pk: primaryKey({ columns: [table.postId, table.userId] }),
+	}),
+)
+
+export const comments = pgTable(
+	'comments',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		postId: uuid('post_id')
+			.notNull()
+			.references(() => posts.id, { onDelete: 'cascade' }),
+		authorId: uuid('author_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		body: text('body').notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	table => ({
+		// Comments are always read as "this post's, oldest first".
+		postIdx: index('comments_post_id_created_at_idx').on(table.postId, table.createdAt),
+	}),
+)
+
+/** Same shape as `post_likes`, one table down: one like per person per comment. */
+export const commentLikes = pgTable(
+	'comment_likes',
+	{
+		commentId: uuid('comment_id')
+			.notNull()
+			.references(() => comments.id, { onDelete: 'cascade' }),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	table => ({
+		pk: primaryKey({ columns: [table.commentId, table.userId] }),
+	}),
+)
+
 export const usersRelations = relations(users, ({ many }) => ({
 	posts: many(posts),
+	likes: many(postLikes),
+	comments: many(comments),
+	commentLikes: many(commentLikes),
 }))
 
-export const postsRelations = relations(posts, ({ one }) => ({
+export const postsRelations = relations(posts, ({ one, many }) => ({
 	author: one(users, {
 		fields: [posts.authorId],
+		references: [users.id],
+	}),
+	likes: many(postLikes),
+	comments: many(comments),
+}))
+
+export const postLikesRelations = relations(postLikes, ({ one }) => ({
+	post: one(posts, {
+		fields: [postLikes.postId],
+		references: [posts.id],
+	}),
+	user: one(users, {
+		fields: [postLikes.userId],
+		references: [users.id],
+	}),
+}))
+
+export const commentsRelations = relations(comments, ({ one, many }) => ({
+	post: one(posts, {
+		fields: [comments.postId],
+		references: [posts.id],
+	}),
+	author: one(users, {
+		fields: [comments.authorId],
+		references: [users.id],
+	}),
+	likes: many(commentLikes),
+}))
+
+export const commentLikesRelations = relations(commentLikes, ({ one }) => ({
+	comment: one(comments, {
+		fields: [commentLikes.commentId],
+		references: [comments.id],
+	}),
+	user: one(users, {
+		fields: [commentLikes.userId],
 		references: [users.id],
 	}),
 }))
@@ -74,3 +202,8 @@ export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
 export type Post = typeof posts.$inferSelect
 export type NewPost = typeof posts.$inferInsert
+export type PostLike = typeof postLikes.$inferSelect
+export type Comment = typeof comments.$inferSelect
+export type NewComment = typeof comments.$inferInsert
+export type CommentLike = typeof commentLikes.$inferSelect
+export type Settings = typeof settings.$inferSelect

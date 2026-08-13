@@ -1,6 +1,7 @@
 'use client'
 
 import Avatar from '@/app/UI/Avatar'
+import { useSite } from '@/app/UI/SiteProvider'
 import eden from '@/utils/eden'
 import useAuth, { AUTH_KEY } from '@/utils/useAuth'
 import { Button, Loader, PasswordInput, Select } from '@mantine/core'
@@ -10,6 +11,7 @@ import useSWR, { mutate } from 'swr'
 
 const LoginPage = () => {
 	const router = useRouter()
+	const { title, description } = useSite()
 
 	const [userId, setUserId] = useState<string | null>(null)
 	const [password, setPassword] = useState('')
@@ -69,8 +71,8 @@ const LoginPage = () => {
 			>
 				<div className="mb-6 text-center">
 					<div className="mb-2 text-3xl">🎬</div>
-					<h1 className="text-xl font-extrabold tracking-tight text-white">Clipnest</h1>
-					<p className="text-sm text-slate-400">Clips and memes, between friends.</p>
+					<h1 className="text-xl font-extrabold tracking-tight text-white">{title}</h1>
+					{description ? <p className="text-sm text-slate-400">{description}</p> : null}
 				</div>
 
 				<div className="flex flex-col gap-4">

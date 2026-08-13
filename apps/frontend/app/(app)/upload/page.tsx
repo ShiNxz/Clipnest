@@ -1,5 +1,6 @@
 'use client'
 
+import { prependToFeed } from '@/app/(app)/Hooks/useFeed'
 import Dropzone from '@/app/UI/Dropzone'
 import { formatBytes } from '@/utils/format'
 import { isVideo, mimeOf } from '@/utils/media'
@@ -79,8 +80,12 @@ const UploadPage = () => {
 			patch(item.id, { status: 'uploading', progress: 0, error: undefined })
 
 			try {
-				await uploadAndPost(item.file, item.caption, ratio => patch(item.id, { progress: ratio }))
+				const created = await uploadAndPost(item.file, item.caption, ratio => patch(item.id, { progress: ratio }))
 				patch(item.id, { status: 'done', progress: 1 })
+
+				// Straight into the feed's cache, so it's already there when the
+				// redirect below lands.
+				if (created) await prependToFeed(created)
 			} catch (err) {
 				const message = err instanceof Error ? err.message : 'Upload failed'
 				failures.push(message)
@@ -106,7 +111,7 @@ const UploadPage = () => {
 	const pendingCount = items.filter(item => item.status === 'queued' || item.status === 'error').length
 
 	return (
-		<div className="mx-auto max-w-2xl">
+		<div className="mx-auto">
 			<h1 className="mb-5 text-xl font-bold text-white">Upload</h1>
 
 			<Dropzone onFiles={addFiles} disabled={isUploading} />

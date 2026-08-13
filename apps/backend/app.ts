@@ -19,6 +19,8 @@ await runMigrations()
 await seedAdmin()
 logR2Status()
 
+// Request bodies stay small on purpose: files go browser → R2 directly, so
+// nothing here ever carries a clip.
 const app = new Elysia()
 	.use(Logestic.preset('fancy'))
 	.use(swagger)

@@ -38,11 +38,6 @@ const putToR2 = (uploadUrl: string, file: File, contentType: string, onProgress:
 		xhr.send(file)
 	})
 
-export type UploadResult = {
-	meta: MediaMeta
-	key: string
-}
-
 /**
  * The whole publish flow for one file: ask the API to sign, upload to R2,
  * measure the file locally, then record the post.
@@ -63,7 +58,10 @@ export const uploadAndPost = async (file: File, caption: string, onProgress: (ra
 	if (!slot.ok) throw new Error(slot.reason)
 
 	// Measured while the bytes are already on their way out.
-	const [meta] = await Promise.all([probeMedia(file), putToR2(slot.uploadUrl, file, contentType, onProgress)])
+	const [meta] = (await Promise.all([probeMedia(file), putToR2(slot.uploadUrl, file, contentType, onProgress)])) as [
+		MediaMeta,
+		void,
+	]
 
 	const { data: post, error: postError } = await eden.posts.index.post({
 		key: slot.key,

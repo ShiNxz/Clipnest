@@ -16,8 +16,10 @@ export type PresignedUpload = {
  * Hand the browser a URL it can PUT straight to R2.
  *
  * This is what makes "any size, any length" work: the bytes never touch the
- * API, so there's no request body limit, no memory spike and no timeout to
- * tune — a 4 GB clip is between the browser and Cloudflare.
+ * API, so there's no request body limit, no memory spike, no timeout to tune —
+ * and no Cloudflare proxy cap, which is what would bite if uploads were routed
+ * through the API instead. A 4 GB clip is strictly between the browser and
+ * Cloudflare.
  *
  * Content-Type is not part of the signature, but the client must still send it
  * as a header on the PUT: R2 stores whatever it receives, and that stored value

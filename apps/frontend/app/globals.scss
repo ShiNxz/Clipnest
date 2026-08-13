@@ -58,6 +58,24 @@ button {
 	border: none;
 }
 
+// Menus, select dropdowns and hover cards float over the feed rather than
+// sitting in it, so they get the same treatment as the header: a translucent
+// panel with the content blurred behind it.
+//
+// The `body` prefix is load-bearing. Mantine's stylesheet is imported after this
+// file, and its own rule for these panels has identical specificity — without
+// the extra element the later stylesheet would simply win.
+body {
+	.mantine-Menu-dropdown,
+	.mantine-Popover-dropdown,
+	.mantine-Combobox-dropdown {
+		background-color: rgb(27 27 38 / 0.82);
+		border-color: rgb(255 255 255 / 0.09);
+		backdrop-filter: blur(14px);
+		-webkit-backdrop-filter: blur(14px);
+	}
+}
+
 .no-scrollbar {
 	-ms-overflow-style: none;
 	scrollbar-width: none;

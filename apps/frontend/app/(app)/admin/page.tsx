@@ -1,7 +1,10 @@
 'use client'
 
+import type { AdminPost, AdminUser } from '@/app/(app)/admin/Hooks/useAdmin'
 import { deleteAdminPost, deleteUser, updateUser, useAdminPosts, useAdminUsers } from '@/app/(app)/admin/Hooks/useAdmin'
 import Avatar from '@/app/UI/Avatar'
+import EditPostModal from '@/app/UI/EditPostModal'
+import EditUserModal from '@/app/UI/EditUserModal'
 import NewUserModal from '@/app/UI/NewUserModal'
 import SiteSettingsForm from '@/app/UI/SiteSettingsForm'
 import { formatBytes, formatDuration, timeAgo } from '@/utils/format'
@@ -11,7 +14,14 @@ import { notifications } from '@mantine/notifications'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { BsThreeDots } from 'react-icons/bs'
-import { IoKeyOutline, IoPersonAddOutline, IoShieldCheckmarkOutline, IoTrashOutline } from 'react-icons/io5'
+import {
+	IoCreateOutline,
+	IoKeyOutline,
+	IoPencilOutline,
+	IoPersonAddOutline,
+	IoShieldCheckmarkOutline,
+	IoTrashOutline,
+} from 'react-icons/io5'
 import { randomPassword } from 'shared'
 
 const AdminPage = () => {
@@ -22,6 +32,9 @@ const AdminPage = () => {
 	const { data: users, isLoading: loadingUsers, mutate: refreshUsers } = useAdminUsers()
 
 	const [isCreating, setIsCreating] = useState(false)
+	// Whichever row is open in an edit modal — null when nothing is being edited.
+	const [editingPost, setEditingPost] = useState<AdminPost | null>(null)
+	const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
 
 	// The API rejects non-admins anyway; this only avoids showing them a broken page.
 	useEffect(() => {
@@ -150,16 +163,29 @@ const AdminPage = () => {
 										</p>
 									</div>
 
-									<Tooltip label="Delete clip">
-										<ActionIcon
-											variant="subtle"
-											color="red"
-											aria-label="Delete clip"
-											onClick={() => handleDeletePost(post.id, post.caption || `${post.author.name}'s post`)}
-										>
-											<IoTrashOutline />
-										</ActionIcon>
-									</Tooltip>
+									<div className="flex items-center gap-0.5">
+										<Tooltip label="Edit caption">
+											<ActionIcon
+												variant="subtle"
+												color="gray"
+												aria-label="Edit clip"
+												onClick={() => setEditingPost(post)}
+											>
+												<IoPencilOutline />
+											</ActionIcon>
+										</Tooltip>
+
+										<Tooltip label="Delete clip">
+											<ActionIcon
+												variant="subtle"
+												color="red"
+												aria-label="Delete clip"
+												onClick={() => handleDeletePost(post.id, post.caption || `${post.author.name}'s post`)}
+											>
+												<IoTrashOutline />
+											</ActionIcon>
+										</Tooltip>
+									</div>
 								</div>
 							))}
 						</div>
@@ -210,6 +236,9 @@ const AdminPage = () => {
 											</ActionIcon>
 										</Menu.Target>
 										<Menu.Dropdown>
+											<Menu.Item leftSection={<IoCreateOutline />} onClick={() => setEditingUser(user)}>
+												Edit user
+											</Menu.Item>
 											<Menu.Item leftSection={<IoKeyOutline />} onClick={() => handleResetPassword(user.id, user.name)}>
 												Reset password
 											</Menu.Item>
@@ -244,6 +273,20 @@ const AdminPage = () => {
 			</Tabs>
 
 			<NewUserModal opened={isCreating} onClose={() => setIsCreating(false)} onCreated={refreshUsers} />
+
+			<EditPostModal post={editingPost} onClose={() => setEditingPost(null)} onSaved={refreshPosts} />
+
+			<EditUserModal
+				user={editingUser}
+				isSelf={editingUser?.id === me.id}
+				onClose={() => setEditingUser(null)}
+				// A renamed or re-faced user is stamped on every clip they posted, so
+				// the clips list is stale too.
+				onSaved={() => {
+					refreshUsers()
+					refreshPosts()
+				}}
+			/>
 		</div>
 	)
 }

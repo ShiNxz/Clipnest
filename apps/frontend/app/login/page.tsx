@@ -62,7 +62,10 @@ const LoginPage = () => {
 	}
 
 	return (
-		<div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+		<div className="relative isolate flex min-h-screen items-center justify-center overflow-hidden px-4">
+			{/* `isolate` on the parent is what makes this visible: at `-z-10` with no
+			    stacking context to hold it, it falls back to the root and paints
+			    underneath the body's own opaque background. */}
 			<div className="pointer-events-none absolute left-1/2 top-1/4 -z-10 h-[400px] w-[600px] -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 opacity-20 blur-[130px]" />
 
 			<form

@@ -4,6 +4,7 @@ import useFeed, { type Post, deletePost } from '@/app/(app)/Hooks/useFeed'
 import MediaViewer from '@/app/UI/MediaViewer'
 import PostCard from '@/app/UI/PostCard'
 import PostTile from '@/app/UI/PostTile'
+import { PostCardSkeleton, PostTileSkeleton } from '@/app/UI/Skeletons'
 import useAuth from '@/utils/useAuth'
 import { Button, Loader, SegmentedControl, Select } from '@mantine/core'
 import { useIntersection } from '@mantine/hooks'
@@ -21,6 +22,25 @@ const SORT_OPTIONS = FEED_SORTS.map(value => ({ value, label: FEED_SORT_LABELS[v
 
 /** How far below the last post the next page starts loading. */
 const PREFETCH_MARGIN = '800px'
+
+/** Enough placeholders to fill a tall screen in the grid; the column uses three. */
+const SKELETONS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+
+/**
+ * Two pools of colour behind the feed, faint enough to read as depth rather than
+ * as decoration. `fixed`, so they stay put while the feed scrolls past them.
+ *
+ * The parent must carry `isolate`. These sit at `-z-10` to get behind the feed's
+ * content, and without a stacking context to be trapped in they would slip all
+ * the way back to the root — where the body's own opaque background covers them
+ * and nothing is ever seen.
+ */
+const Glows = () => (
+	<div aria-hidden>
+		<div className="pointer-events-none fixed left-[-8%] top-[-6%] -z-10 h-[380px] w-[380px] rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 opacity-[0.07] blur-[110px]" />
+		<div className="pointer-events-none fixed bottom-[-10%] right-[-6%] -z-10 h-[420px] w-[420px] rounded-full bg-gradient-to-br from-fuchsia-600 to-indigo-600 opacity-[0.06] blur-[120px]" />
+	</div>
+)
 
 const FeedPage = () => {
 	const { data: me } = useAuth()
@@ -99,7 +119,9 @@ const FeedPage = () => {
 
 	if (!isLoadingInitial && !posts.length) {
 		return (
-			<div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-white/10 py-20 text-center">
+			<div className="relative isolate flex flex-col items-center gap-4 rounded-2xl border border-dashed border-white/10 py-20 text-center">
+				<Glows />
+
 				<span className="text-4xl">🍿</span>
 				<div>
 					<p className="text-lg font-semibold text-slate-200">Nothing here yet</p>
@@ -113,7 +135,9 @@ const FeedPage = () => {
 	}
 
 	return (
-		<>
+		<div className="relative isolate">
+			<Glows />
+
 			{/* Stays put while a new order loads — it's what the reader just clicked. */}
 			<div className="mb-5 flex flex-wrap items-center justify-between gap-3">
 				<h1 className="text-xl font-bold text-white">Feed</h1>
@@ -145,9 +169,21 @@ const FeedPage = () => {
 			</div>
 
 			{isLoadingInitial ? (
-				<div className="flex justify-center py-20">
-					<Loader color="indigo" />
-				</div>
+				// Shaped like whichever view is about to appear, so the wait doesn't
+				// resolve into a different layout than the one it implied.
+				view === 'feed' ? (
+					<div className="mx-auto flex flex-col gap-6">
+						{SKELETONS.slice(0, 3).map(key => (
+							<PostCardSkeleton key={key} />
+						))}
+					</div>
+				) : (
+					<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+						{SKELETONS.map(key => (
+							<PostTileSkeleton key={key} />
+						))}
+					</div>
+				)
 			) : view === 'feed' ? (
 				<div className="mx-auto flex flex-col gap-6">
 					{posts.map((post, index) => (
@@ -193,7 +229,7 @@ const FeedPage = () => {
 					onToggleLike={handleToggleLike}
 				/>
 			)}
-		</>
+		</div>
 	)
 }
 

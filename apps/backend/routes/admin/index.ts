@@ -1,13 +1,13 @@
 import { asc, count, desc, eq } from 'drizzle-orm'
 import Elysia, { t } from 'elysia'
-import { DEFAULT_AVATAR_STYLE, avatarUrl, randomSeed } from 'shared'
+import { DEFAULT_AVATAR_STYLE, POST_CAPTION_MAX_LENGTH, avatarUrl, randomSeed } from 'shared'
 import { db } from '../../db'
 import { posts, users } from '../../db/schema'
 import isAdmin from '../../middlewares/isAdmin'
 import { logError } from '../../utils/lib/console'
 import { hashPassword } from '../../utils/lib/password'
 import { forgetFiles } from '../../utils/lib/r2/cleanup'
-import { authorColumns } from '../../utils/lib/serialize'
+import { authorColumns, publicUser } from '../../utils/lib/serialize'
 
 /** Folded form used for the case-insensitive uniqueness of display names. */
 const nameKeyOf = (name: string) => name.trim().toLowerCase()
@@ -35,6 +35,29 @@ const AdminRoutes = new Elysia({
 		},
 		{
 			detail: { summary: 'Every clip and image on the site' },
+		},
+	)
+	.patch(
+		'/posts/:id',
+		async ({ params: { id }, body: { caption }, error }) => {
+			try {
+				// The caption is the only part of a post that isn't the file itself —
+				// everything else (kind, key, size, dimensions) is read off R2 at
+				// upload time and would be a lie if it were editable.
+				const [updated] = await db.update(posts).set({ caption: caption.trim() }).where(eq(posts.id, id)).returning()
+
+				if (!updated) return error(404, 'Post not found')
+
+				return updated
+			} catch (err) {
+				logError(err)
+				return error(500, 'Failed to update the post')
+			}
+		},
+		{
+			detail: { summary: "Edit a clip's caption" },
+			params: t.Object({ id: t.String() }),
+			body: t.Object({ caption: t.String({ maxLength: POST_CAPTION_MAX_LENGTH }) }),
 		},
 	)
 	.delete(
@@ -164,6 +187,10 @@ const AdminRoutes = new Elysia({
 					if (target.id === user.id && !body.isAdmin) return error(400, "You can't remove your own admin access")
 					patch.isAdmin = body.isAdmin
 				}
+
+				// An edit form that changed nothing still submits; `set({})` is not
+				// valid SQL, so answer with the row as it stands.
+				if (!Object.keys(patch).length) return publicUser(target)
 
 				const [updated] = await db.update(users).set(patch).where(eq(users.id, id)).returning({
 					id: users.id,

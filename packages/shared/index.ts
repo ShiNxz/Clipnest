@@ -1,4 +1,5 @@
 export * from './avatar'
 export * from './feed'
 export * from './password'
+export * from './post'
 export * from './site'

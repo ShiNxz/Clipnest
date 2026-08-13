@@ -1,6 +1,6 @@
 import { type SQL, and, asc, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm'
 import Elysia, { t } from 'elysia'
-import { DEFAULT_FEED_SORT, FEED_SORTS, type FeedSort } from 'shared'
+import { DEFAULT_FEED_SORT, FEED_SORTS, type FeedSort, POST_CAPTION_MAX_LENGTH } from 'shared'
 import { db } from '../../db'
 import { commentLikes, comments, postLikes, posts, users } from '../../db/schema'
 import isAuth from '../../middlewares/isAuth'
@@ -335,7 +335,7 @@ const PostRoutes = new Elysia({
 			detail: { summary: 'Publish an already-uploaded file to the feed' },
 			body: t.Object({
 				key: t.String(),
-				caption: t.Optional(t.String({ maxLength: 2000 })),
+				caption: t.Optional(t.String({ maxLength: POST_CAPTION_MAX_LENGTH })),
 				width: t.Optional(t.Number()),
 				height: t.Optional(t.Number()),
 				duration: t.Optional(t.Number()),

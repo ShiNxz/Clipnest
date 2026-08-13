@@ -1,38 +1,117 @@
 # Clipnest 🎬
 
-A private clips-and-memes feed for a group of friends. Everyone gets a name and a
-password, uploads whatever they want at whatever size, and it shows up in a feed
-that looks like Instagram — or a 4-column grid, if you prefer.
+**A private little corner of the internet for your group of friends.**
+
+Every group has them: the clutch play someone clipped at 3am, the video from the
+party nobody should ever see, the inside-joke meme that makes no sense to anyone
+else. They get lost in WhatsApp, compressed into mush by Instagram, or buried in
+a Discord channel three months deep.
+
+Clipnest is a website you run for *your* group. Everyone gets a name and a
+password, uploads clips and memes at full quality and any size, and it all lands
+in one feed you can actually scroll, like and argue in the comments of.
+
+**Private by default.** No signups, no emails, no algorithm, no strangers.
+An admin creates the accounts, and that's the whole guest list. Nobody else can
+even see the door.
 
 - **Frontend:** Next.js 14 (App Router) + Mantine + Tailwind
 - **Backend:** Elysia on Bun, typed end-to-end via Eden
-- **Database:** Postgres (Drizzle ORM)
-- **Storage:** Cloudflare R2, uploaded **straight from the browser** — no size limit
+- **Database:** Postgres (Drizzle ORM), or zero-install PGlite locally
+- **Storage:** Cloudflare R2, uploaded **straight from the browser**, no size limit
+
+---
+
+## What you get
+
+📤 **Upload anything** — clips, screen recordings, memes, screenshots. Files go
+from your browser straight to storage, so there's no upload limit to fight with.
+Caption each one, watch the progress bars, done.
+
+📱 **A feed that feels familiar** — Instagram-style single column, or flip to a
+4-column grid when you just want to scan everything. Your choice is remembered.
+
+🔍 **Fullscreen viewer** — click any post to blow it up over the page. Arrow keys
+move through the feed, `Esc` gets you out.
+
+❤️ **Likes and comments** — one like per person, and hovering the count shows you
+exactly *who* liked it, avatars and all. Comments have their own likes, and every
+post shows its full thread right in the feed.
+
+↕️ **Sort it your way** — newest, most liked, most commented, or oldest first.
+It keeps loading as you scroll.
+
+🎭 **Fun avatars** — no photo uploads needed. Everyone gets a generated character,
+with a Randomize button and 12 styles to pick from.
+
+🏷️ **Make it yours** — an admin can rename the site and set a tagline, so it can
+be "Squad Vault" or "Ben's Birthday 2026" instead of Clipnest. It even shows up
+right when you paste the link in a chat.
+
+👑 **Admin panel** — create and manage people, reset passwords, promote admins,
+edit captions, delete anything.
 
 ---
 
 ## Quick start
 
+You need [Bun](https://bun.sh) installed. That's the only prerequisite —
+no Postgres, no Docker.
+
+**1. Grab it and install**
+
 ```bash
+git clone <this-repo> clipnest
+cd clipnest
 bun install
+```
+
+**2. Set up your two env files**
+
+```bash
+cp apps/backend/.env.example apps/backend/.env
+cp apps/frontend/.env.example apps/frontend/.env
+```
+
+Open `apps/backend/.env` and change two things:
+
+- `SECRET` — anything long and random (`bun -e 'console.log(crypto.randomUUID())'`)
+- `ADMIN_USERNAME` / `ADMIN_PASSWORD` — this is *your* login, created on first boot
+
+You can leave everything else for now.
+
+**3. Run it**
+
+```bash
 bun dev
 ```
 
-That's it. The site is on **http://localhost:3000**, the API on
-**http://localhost:5600**, and the first boot creates the admin account from
-`apps/backend/.env` (`Amir` / `123123123` by default — change it).
+The site is on **http://localhost:3000**, the API on **http://localhost:5600**.
 
-You don't need Postgres installed to run it locally, and you don't need R2 to
-log in and click around — see below.
+**4. Log in and invite the crew**
+
+Log in with the admin name and password you just set, go to **/admin → Users**,
+and create an account for each friend. Every new password is shown **once**, in
+the toast right after you create them, so copy it and send it over. Their name
+then appears in the dropdown on the login page and the password is the only
+thing they ever type.
+
+**5. To actually upload things, add storage**
+
+Uploads need a Cloudflare R2 bucket ([setup below](#uploads-and-storage)). Until
+then everything else works fine — you can log in, click around and explore.
+Only uploading fails, with a message telling you what's missing.
+
+### Commands
 
 | Command | What it does |
 | --- | --- |
 | `bun dev` | Frontend + backend together |
 | `bun run build` | Production build of both |
 | `bun start` | Run the production builds |
+| `bun run seed` | Create the admin user without booting the API |
 | `bun run db:generate` | Regenerate SQL migrations after editing the schema |
 | `bun run studio` | Drizzle Studio |
-| `bun run seed` | Create the admin user without booting the API |
 | `bunx biome check --write .` | Format + lint |
 
 ---
@@ -41,95 +120,35 @@ log in and click around — see below.
 
 | Route | Who | What |
 | --- | --- | --- |
-| `/login` | anyone | Pick your name from a searchable dropdown, type your password |
-| `/` | logged in | The feed — Instagram-style column or 4-column grid, click anything for fullscreen. Like it, comment on it |
-| `/upload` | logged in | Drop clips and memes, caption each one, watch the progress bars |
-| `/admin` | admins | Every clip (with delete), every user (create, reset password, promote, delete), and what the site is called |
-| `/docs` (API) | anyone | Swagger for the whole API |
-
-**Fullscreen viewer** — click a post to open it over the page. Arrow keys move
-through the feed, `Esc` closes. Videos play through `react-player`; images get
-a plain contain-fit.
-
-**Grid vs feed** — the toggle lives at the top right of the feed and is
-remembered per browser in `localStorage`.
-
-**Sorting** — the dropdown next to it reorders the feed: recently uploaded (the
-default), most liked, most commented, or oldest first. Each order pages
-independently, and the feed loads the next page as you approach the bottom
-rather than making you ask for it.
-
-### Likes and comments
-
-The heart is one like per person — the `(post, user)` pair is the primary key,
-so a double-click can't count twice. **Hover the like count** and a card lists
-who liked it, with their avatars; past a dozen it says "and N more". Comments
-have their own smaller heart, and the same hover card.
-
-Every post in the feed shows its whole thread, with the box to add to it. The
-threads travel *with* the feed — one query for the page, not one per card — so
-showing them all costs a few kilobytes rather than twelve round trips. The
-fullscreen viewer deliberately leaves them out: it's there to give the clip the
-screen.
-
-You can delete your own comments, anything said under your own post, and admins
-can delete anything.
-
-Likes are optimistic: the heart moves on the click and reverts if the request
-fails, rather than waiting on the server to redraw itself.
-
-### Naming the site
-
-`/admin` → **Site** sets the name and tagline, so an install can be dedicated to
-one group — or one party — instead of being called Clipnest. The name shows up in
-the header, on the login screen and in the browser tab; the tagline sits under
-the name on `/login`. Both go into the page metadata (`description`,
-`og:*`, `twitter:*`), which is what a chat app shows when someone pastes the
-link.
-
-They live in a one-row `settings` table, not in the environment: `WEBSITE_NAME`
-is inlined into the Next bundle at build time, so changing it would mean a
-rebuild. This is read per request instead — save, and the next page load has it.
-`GET /settings` is public (the login screen and crawlers both need it before
-there's a session); only admins can `PATCH` it.
+| `/login` | anyone | Pick your name from the dropdown, type your password |
+| `/` | logged in | The feed — column or grid, click anything for fullscreen |
+| `/upload` | logged in | Drop clips and memes, caption them, watch them upload |
+| `/admin` | admins | Every clip, every user, and what the site is called |
+| `/docs` | anyone | Swagger for the whole API |
 
 ---
 
-## How people log in
+## How logins work
 
-There are no emails and no signup. An admin creates a user with a name and a
-password; that name then appears in the dropdown on `/login`, and the password
-is the only thing to type.
+There's no signup form and no email anywhere. An admin creates a user with a
+name and a password, that name appears in the `/login` dropdown, and the
+password is the only thing to type.
 
 - Passwords are hashed with **argon2id** (Bun's built-in `Bun.password`).
-- The session is a JWT in an **HttpOnly cookie**, set for **400 days** — the
-  longest a cookie can live, since Chrome and the cookie spec clamp anything
-  above that.
-- The token carries only a user id; the row is re-read on every request, so
-  deleting a user or changing their admin flag takes effect immediately instead
-  of waiting out the cookie.
-- `GET /auth/users` is deliberately public — it's the login dropdown. It exposes
-  names and avatars, never hashes.
-
-### Avatars
-
-Avatars are [DiceBear](https://dicebear.com) URLs — a pure function of
-`(style, seed)`, so there's nothing to upload or store. New users get one
-automatically, and the create-user form has a **Randomize** button plus 12
-styles to pick from. There's also a 🎲 button for the password, and a copy
-button next to it.
-
-Passwords are shown **once**, in the toast right after creating the user or
-resetting it. Write it down — there's no way to read it back.
+- The session is a JWT in an **HttpOnly cookie**, good for **400 days** — the
+  longest a cookie is allowed to live, so nobody gets logged out mid-scroll.
+- The cookie only carries a user id and the row is re-read on every request, so
+  deleting someone or changing their admin flag takes effect immediately.
+- Passwords are shown once and can't be read back. Only reset.
 
 ---
 
-## Uploads
+## Uploads and storage
 
-The browser asks the API to sign an upload, PUTs the file **directly to R2**, and
-only then tells the API to publish the post. The bytes never pass through the
-API, which is what makes "any size, any length" true — there's no request body
-limit to raise, no memory spike, and no timeout to tune.
+The browser asks the API to sign an upload, sends the file **directly to R2**,
+and only then tells the API to publish the post. The bytes never pass through
+the API, which is what makes "any size, any length" true — no request body limit
+to raise, no memory spike, no timeout to tune.
 
 ```
 browser ──POST /uploads/sign──> API ──> presigned PUT URL
@@ -137,21 +156,19 @@ browser ──PUT (the whole file)───────────────�
 browser ──POST /posts { key }──> API ──HeadObject──> R2   (confirms it landed)
 ```
 
-The API never trusts what the client says about the file: it reads the size and
-content type back off R2, and refuses any key that isn't under the caller's own
-`posts/<their-user-id>/` prefix.
-
-The one real ceiling is **5 GB per file** — S3's limit for a single PUT. Past
-that you'd need a multipart upload, which this doesn't implement.
+The API never trusts what the client claims about a file: it reads the size and
+content type back off R2, and refuses any key outside the caller's own
+`posts/<their-user-id>/` folder. The one real ceiling is **5 GB per file**,
+which is S3's limit for a single PUT.
 
 ### Setting up R2
 
 1. Create a bucket (e.g. `clipnest`).
-2. Expose it publicly: either the `r2.dev` subdomain or a custom domain. Put the
-   hostname in `R2_PUBLIC_URL` — no scheme, e.g. `r2.clipnest.dev`.
+2. Expose it publicly — either the `r2.dev` subdomain or a custom domain. Put
+   the hostname in `R2_PUBLIC_URL`, no scheme, e.g. `r2.clipnest.dev`.
 3. Create an **R2 API token** with Object Read & Write, and fill in
    `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`.
-4. **Add a CORS rule to the bucket** — without it the browser's PUT is blocked
+4. **Add a CORS rule to the bucket.** Without it the browser's upload is blocked
    and every upload fails:
 
 ```json
@@ -166,25 +183,21 @@ that you'd need a multipart upload, which this doesn't implement.
 ]
 ```
 
-Until R2 is configured the app still boots, logs in and browses — only uploading
-fails, with a message saying what's missing.
-
 ---
 
 ## Database
 
-Postgres, through Drizzle. `users` and `posts`, with `post_likes`, `comments`
-and `comment_likes` hanging off them — every one cascades, so deleting a post
-(or the person who made it) takes the likes and the thread with it. Plus
-`settings`, which is one row holding the site's name and tagline.
+Postgres through Drizzle. `users` and `posts`, with `post_likes`, `comments` and
+`comment_likes` hanging off them — everything cascades, so deleting a post (or
+the person who made it) takes the likes and the thread with it. Plus `settings`,
+one row holding the site's name and tagline.
 
-**In production**, set `DATABASE_URL` and you're on a normal Postgres server.
-
-**Locally**, leave it unset and the app falls back to
+**Locally**, leave `DATABASE_URL` unset and the app falls back to
 [PGlite](https://pglite.dev) — the real Postgres engine compiled to WASM,
 persisting to `apps/backend/.data/`. Same SQL, same schema, same migrations, but
-`bun dev` works on a laptop with nothing installed. Delete that folder to start
-over.
+nothing to install. Delete that folder to start over.
+
+**In production**, set `DATABASE_URL` and you're on a normal Postgres server.
 
 Migrations run automatically on boot, so a fresh clone needs no extra step.
 After editing `db/schema.ts`, run `bun run db:generate` to write a new migration.
@@ -192,6 +205,8 @@ After editing `db/schema.ts`, run `bun run db:generate` to write a new migration
 ---
 
 ## Environment
+
+Both `.env.example` files are commented in detail — this is the short version.
 
 **`apps/backend/.env`**
 
@@ -213,14 +228,13 @@ After editing `db/schema.ts`, run `bun run db:generate` to write a new migration
 
 ### Cookies across domains
 
-Locally the site (`:3000`) and API (`:5600`) are the same site — ports aren't
-part of a cookie's origin — so the default `SameSite=Lax` works.
+Locally the site (`:3000`) and API (`:5600`) count as the same site — ports
+aren't part of a cookie's origin — so the default `SameSite=Lax` works.
 
 In production the cookie is pinned to the parent domain, so `api.example.com`
-can set a cookie that `example.com` sends back. If you ever put the API on a
+can set a cookie that `example.com` sends back. If you put the API on a
 **different registrable domain**, change `authCookieOptions` in
-`apps/backend/utils/constants/Auth.ts` to `sameSite: 'none'` with
-`secure: true`.
+`apps/backend/utils/constants/Auth.ts` to `sameSite: 'none'` with `secure: true`.
 
 ---
 
@@ -252,19 +266,16 @@ its own response shape. Change a route, and the frontend stops compiling.
 
 ## Things worth knowing
 
-- **Deleting is permanent.** Removing a post deletes the R2 object too; removing
-  a user takes all their posts with them. If R2 can't be reached the row is
-  still deleted and the orphaned object is logged rather than blocking the
-  delete.
-- **Video thumbnails** in the grid are the browser rendering the first frame via
-  a `#t=0.1` URL fragment — no thumbnails are generated or stored.
+- **Deleting is permanent.** Removing a post deletes the R2 object too, and
+  removing a user takes all their posts with them.
+- **Video thumbnails** in the grid are just the browser rendering the first
+  frame via a `#t=0.1` URL fragment. Nothing is generated or stored.
 - **Dimensions and duration** are measured in the browser before upload, since
-  the server never sees the bytes. If the browser can't decode a file, the post
-  is still created without them.
-- **Feed paging** uses a keyset cursor holding the exact tuple its sort walks —
-  `(createdAt, id)`, or `(likes, createdAt, id)` for the ranked orders — so
-  posting or liking while someone scrolls never duplicates or skips an item,
-  including when several uploads land on the same millisecond or a dozen posts
-  have the same number of likes. The orders themselves live in
-  `packages/shared/feed.ts`: the API validates against that list and the
-  dropdown is built from it, so adding one is a single edit.
+  the server never sees the bytes. If a file can't be decoded, the post is
+  still created without them.
+- **Likes are optimistic** — the heart moves on the click and reverts if the
+  request fails, instead of waiting on the server.
+- **Feed paging** uses a keyset cursor holding the exact tuple its sort walks, so
+  posting or liking while someone scrolls never duplicates or skips an item.
+  The sort orders live in `packages/shared/feed.ts`: the API validates against
+  that list and the dropdown is built from it, so adding one is a single edit.

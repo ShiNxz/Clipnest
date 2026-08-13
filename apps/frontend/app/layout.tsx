@@ -1,6 +1,6 @@
 import SiteProvider from '@/app/UI/SiteProvider'
 import { getSiteSettings } from '@/utils/site'
-import { ColorSchemeScript, MantineProvider, createTheme } from '@mantine/core'
+import { ColorSchemeScript, MantineProvider, type MantineColorsTuple, createTheme } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
@@ -12,10 +12,35 @@ import '@mantine/notifications/styles.css'
 
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] })
 
+/**
+ * Mantine's stock dark scale is pure neutral grey (#2e2e2e, #242424), which
+ * reads as a flat grey box next to the page's blue-black ink. Every dark surface
+ * Mantine paints — select and input backgrounds, the segmented control, menu and
+ * popover dropdowns, modals, hover states — comes off this one scale, so tinting
+ * it here fixes all of them at once instead of per component.
+ *
+ * The lightness steps are the stock ones; only the hue moved. The bottom four
+ * are the app's own `ink` values, so a Mantine surface and a hand-written one
+ * land on exactly the same colour.
+ */
+const ink: MantineColorsTuple = [
+	'#cbcbd6',
+	'#babac7',
+	'#86869a',
+	'#6b6b7e',
+	'#43434f',
+	'#353542',
+	'#272733', // ink-700 — input backgrounds, hovers
+	'#1b1b26', // ink-800 — dropdowns and modals, lifted off the page
+	'#12121a', // ink-900 — cards
+	'#0a0a0f', // ink-950 — the page itself
+]
+
 const theme = createTheme({
 	primaryColor: 'indigo',
 	defaultRadius: 'md',
 	fontFamily: 'inherit',
+	colors: { dark: ink },
 })
 
 /**

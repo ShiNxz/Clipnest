@@ -27,6 +27,12 @@ const messageOf = (error: { value?: unknown } | null, fallback: string) => {
 	return typeof value === 'string' && value ? value : fallback
 }
 
+export const updateAdminPost = async (id: string, input: { caption: string }) => {
+	const { data, error } = await eden.admin.posts({ id }).patch(input)
+	if (error) throw new Error(messageOf(error, 'Could not save the clip'))
+	return data
+}
+
 export const deleteAdminPost = async (id: string) => {
 	const { error } = await eden.admin.posts({ id }).delete()
 	if (error) throw new Error(messageOf(error, 'Could not delete the clip'))

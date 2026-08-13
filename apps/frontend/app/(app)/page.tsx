@@ -1,6 +1,6 @@
 'use client'
 
-import useFeed, { type Post, deletePost } from '@/app/(app)/Hooks/useFeed'
+import useFeed, { type Post, deletePost, setPostShared } from '@/app/(app)/Hooks/useFeed'
 import MediaViewer from '@/app/UI/MediaViewer'
 import PostCard from '@/app/UI/PostCard'
 import PostTile from '@/app/UI/PostTile'
@@ -111,6 +111,27 @@ const FeedPage = () => {
 		}
 	}
 
+	/**
+	 * Anyone in the group can share; only the people with a stake in a post can
+	 * pull it back. The API enforces both — this is just what the modal offers.
+	 */
+	const canUnshare = (post: Post) =>
+		Boolean(me && (me.isAdmin || me.id === post.author.id || me.id === post.sharedById))
+
+	// The error is deliberately left to the modal, which is still open and is
+	// where the reader is looking — a toast behind it would be the wrong place to
+	// tell someone their post did not become public after all.
+	const handleShare = async (post: Post, shared: boolean) => {
+		const state = await setPostShared(post.id, shared)
+
+		await patchPost(post.id, { sharedAt: state.sharedAt, sharedById: state.sharedById })
+
+		notifications.show({
+			message: shared ? 'Shared — anyone with the link can see it' : 'Back to members only',
+			color: shared ? 'indigo' : 'gray',
+		})
+	}
+
 	/** Arrowing towards the end of what's loaded pulls the next page in too. */
 	const navigate = (index: number) => {
 		setOpenIndex(index)
@@ -191,9 +212,12 @@ const FeedPage = () => {
 							key={post.id}
 							post={post}
 							canDelete={Boolean(me && (me.isAdmin || me.id === post.author.id))}
+							canUnshare={canUnshare(post)}
 							onOpen={() => setOpenIndex(index)}
 							onDelete={() => handleDelete(post.id)}
 							onToggleLike={() => handleToggleLike(post)}
+							onShare={() => handleShare(post, true)}
+							onUnshare={() => handleShare(post, false)}
 							onCommentsChange={comments => patchPost(post.id, { comments, commentCount: comments.length })}
 						/>
 					))}
@@ -227,6 +251,9 @@ const FeedPage = () => {
 					onClose={() => setOpenIndex(null)}
 					onNavigate={navigate}
 					onToggleLike={handleToggleLike}
+					canUnshare={canUnshare}
+					onShare={post => handleShare(post, true)}
+					onUnshare={post => handleShare(post, false)}
 				/>
 			)}
 		</div>

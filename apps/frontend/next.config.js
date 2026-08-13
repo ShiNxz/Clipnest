@@ -7,6 +7,9 @@ const nextConfig = {
 	},
 	env: {
 		API: process.env.API,
+		// Optional. Only shared posts need it, for their canonical and og: URLs;
+		// unset, they're built from the request's own host instead.
+		WEBSITE_URL: process.env.WEBSITE_URL,
 	},
 }
 

@@ -23,6 +23,21 @@ export const formatDuration = (seconds?: number | null) => {
 	return hours ? `${hours}:${pad(minutes)}:${pad(secs)}` : `${minutes}:${pad(secs)}`
 }
 
+/**
+ * "13 August 2026" — a fixed date rather than "2 hours ago".
+ *
+ * For the public page, which is server-rendered and then hydrated: `timeAgo`
+ * reads the clock, so the server and the browser can format the same post
+ * differently and React complains about the mismatch. Pinned to UTC for the
+ * same reason — the two run in different time zones often enough. A search
+ * engine also prefers a real date, and it never re-reads the page to see it
+ * age.
+ */
+export const formatDate = (date: string | Date) =>
+	new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
+		new Date(date),
+	)
+
 const INTERVALS: [limit: number, divisor: number, unit: Intl.RelativeTimeFormatUnit][] = [
 	[60, 1, 'second'],
 	[3600, 60, 'minute'],

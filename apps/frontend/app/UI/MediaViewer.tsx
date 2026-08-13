@@ -3,6 +3,8 @@
 import type { Post } from '@/app/(app)/Hooks/useFeed'
 import Avatar from '@/app/UI/Avatar'
 import LikeButton from '@/app/UI/LikeButton'
+import PublicBadge from '@/app/UI/PublicBadge'
+import ShareButton from '@/app/UI/ShareButton'
 import { timeAgo } from '@/utils/format'
 import dynamic from 'next/dynamic'
 import { useEffect } from 'react'
@@ -17,13 +19,16 @@ type Props = {
 	onClose: () => void
 	onNavigate: (index: number) => void
 	onToggleLike: (post: Post) => void
+	canUnshare: (post: Post) => boolean
+	onShare: (post: Post) => Promise<void>
+	onUnshare: (post: Post) => Promise<void>
 }
 
 /**
  * Fullscreen viewer for one post, with the rest of the feed reachable by arrow
  * key so it behaves like a lightbox rather than a dead end.
  */
-const MediaViewer = ({ posts, index, onClose, onNavigate, onToggleLike }: Props) => {
+const MediaViewer = ({ posts, index, onClose, onNavigate, onToggleLike, canUnshare, onShare, onUnshare }: Props) => {
 	const post = posts[index]
 
 	const hasPrevious = index > 0
@@ -31,6 +36,15 @@ const MediaViewer = ({ posts, index, onClose, onNavigate, onToggleLike }: Props)
 
 	useEffect(() => {
 		const onKey = (event: KeyboardEvent) => {
+			/**
+			 * The share modal opens on top of the viewer, and these are bound to the
+			 * window — so without this, Escape would close both at once, and an arrow
+			 * key would swap the post out from under a modal that is in the middle of
+			 * asking about it. Mantine traps focus inside the dialog, so anything
+			 * typed while one is open reaches here from inside it.
+			 */
+			if (event.target instanceof Element && event.target.closest('[role="dialog"]')) return
+
 			if (event.key === 'Escape') onClose()
 			if (event.key === 'ArrowLeft' && hasPrevious) onNavigate(index - 1)
 			if (event.key === 'ArrowRight' && hasNext) onNavigate(index + 1)
@@ -59,6 +73,8 @@ const MediaViewer = ({ posts, index, onClose, onNavigate, onToggleLike }: Props)
 					<p className="truncate text-sm font-semibold text-white">{post.author.name}</p>
 					<p className="text-xs text-slate-400">{timeAgo(post.createdAt)}</p>
 				</div>
+
+				{post.sharedAt && <PublicBadge />}
 
 				<button
 					type="button"
@@ -122,12 +138,22 @@ const MediaViewer = ({ posts, index, onClose, onNavigate, onToggleLike }: Props)
 				<div className="mx-auto flex max-w-3xl items-start justify-between gap-3">
 					<p className="min-w-0 flex-1 whitespace-pre-wrap text-sm text-slate-200">{post.caption}</p>
 
-					<LikeButton
-						likeCount={post.likeCount}
-						likedByMe={post.likedByMe}
-						likers={post.likers}
-						onToggle={() => onToggleLike(post)}
-					/>
+					<div className="flex shrink-0 items-center gap-1">
+						<LikeButton
+							likeCount={post.likeCount}
+							likedByMe={post.likedByMe}
+							likers={post.likers}
+							onToggle={() => onToggleLike(post)}
+						/>
+
+						<ShareButton
+							post={post}
+							canUnshare={canUnshare(post)}
+							onShare={() => onShare(post)}
+							onUnshare={() => onUnshare(post)}
+							variant="viewer"
+						/>
+					</div>
 				</div>
 			</div>
 		</div>

@@ -1,34 +1,48 @@
 {
-	"version": "7",
-	"dialect": "postgresql",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "7",
-			"when": 1786569921638,
-			"tag": "0000_brave_luckman",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "7",
-			"when": 1786585175097,
-			"tag": "0001_curved_james_howlett",
-			"breakpoints": true
-		},
-		{
-			"idx": 2,
-			"version": "7",
-			"when": 1786585343665,
-			"tag": "0002_gorgeous_black_tom",
-			"breakpoints": true
-		},
-		{
-			"idx": 3,
-			"version": "7",
-			"when": 1786586369791,
-			"tag": "0003_deep_microchip",
-			"breakpoints": true
-		}
-	]
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1786569921638,
+      "tag": "0000_brave_luckman",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786585175097,
+      "tag": "0001_curved_james_howlett",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786585343665,
+      "tag": "0002_gorgeous_black_tom",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786586369791,
+      "tag": "0003_deep_microchip",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786645132466,
+      "tag": "0004_majestic_umar",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786645630442,
+      "tag": "0005_freezing_galactus",
+      "breakpoints": true
+    }
+  ]
 }

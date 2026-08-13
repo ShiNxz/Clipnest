@@ -6,10 +6,9 @@ import { commentLikes, comments, postLikes, posts, users } from '../../db/schema
 import isAuth from '../../middlewares/isAuth'
 import { POSTS_PREFIX, kindFromMime } from '../../utils/constants/Files'
 import { logError } from '../../utils/lib/console'
-import { publicUrl } from '../../utils/lib/r2'
 import { forgetFiles } from '../../utils/lib/r2/cleanup'
 import { headObject } from '../../utils/lib/r2/get'
-import { authorColumns } from '../../utils/lib/serialize'
+import { authorColumns, withUrl } from '../../utils/lib/serialize'
 
 const DEFAULT_LIMIT = 12
 const MAX_LIMIT = 60
@@ -172,6 +171,16 @@ const summarizeCommentLikes = (rows: CommentLikeRow[], viewerId: string) => ({
 	})),
 })
 
+/**
+ * A post's share state, shaped so the client can patch it straight into the
+ * cached feed item — the same three fields it already carries.
+ */
+const shareState = (post: { sharedAt: Date | null; sharedById: string | null }) => ({
+	shared: Boolean(post.sharedAt),
+	sharedAt: post.sharedAt,
+	sharedById: post.sharedById,
+})
+
 /** An empty thread: what a comment looks like the moment it's written. */
 const NO_LIKES = { likeCount: 0, likedByMe: false, likers: [] as { id: string; name: string; avatarUrl: string }[] }
 
@@ -266,7 +275,7 @@ const PostRoutes = new Elysia({
 				const last = page[page.length - 1]
 
 				return {
-					items: await withSocial(page, user.id),
+					items: (await withSocial(page, user.id)).map(withUrl),
 					// Null means "end of feed" — the client stops asking.
 					nextCursor: hasMore && last ? encodeCursor(order, last) : null,
 				}
@@ -310,7 +319,6 @@ const PostRoutes = new Elysia({
 						caption: caption?.trim() ?? '',
 						kind,
 						key,
-						url: publicUrl(key),
 						mime,
 						size: head.size,
 						width: width ?? null,
@@ -322,7 +330,7 @@ const PostRoutes = new Elysia({
 				// Shaped like a feed item so the client can drop it straight into the
 				// feed it already has, instead of re-reading the whole page.
 				return {
-					...created,
+					...withUrl(created),
 					author: { id: user.id, name: user.name, avatarUrl: user.avatarUrl },
 					likeCount: 0,
 					likedByMe: false,
@@ -369,6 +377,82 @@ const PostRoutes = new Elysia({
 			params: t.Object({
 				id: t.String(),
 			}),
+		},
+	)
+
+	// --------------------------------------------------------------- share
+	.post(
+		'/:id/share',
+		async ({ params: { id }, user, error }) => {
+			try {
+				const post = await db.query.posts.findFirst({
+					where: eq(posts.id, id),
+					columns: { id: true, sharedAt: true, sharedById: true },
+				})
+				if (!post) return error(404, 'Post not found')
+
+				// Already public: answer with the share as it stands rather than
+				// re-stamping it. Two people reaching for the same link shouldn't
+				// rewrite whose decision it was, or when it was made.
+				if (post.sharedAt) return shareState(post)
+
+				const [updated] = await db
+					.update(posts)
+					.set({ sharedAt: new Date(), sharedById: user.id })
+					.where(eq(posts.id, id))
+					.returning({ sharedAt: posts.sharedAt, sharedById: posts.sharedById })
+
+				return shareState(updated)
+			} catch (err) {
+				logError(err)
+				return error(500, 'Failed to share the post')
+			}
+		},
+		{
+			detail: {
+				summary: 'Open a post to anyone with the link',
+				description:
+					'Any member may share, and it is recorded against their name. Until this is called the post is members-only, and calling it again is a no-op.',
+			},
+			params: t.Object({ id: t.String() }),
+		},
+	)
+	.delete(
+		'/:id/share',
+		async ({ params: { id }, user, error }) => {
+			try {
+				const post = await db.query.posts.findFirst({
+					where: eq(posts.id, id),
+					columns: { id: true, authorId: true, sharedAt: true, sharedById: true },
+				})
+				if (!post) return error(404, 'Post not found')
+
+				// Sharing is open to the group, but taking it back belongs to the
+				// people with a stake in it: whoever posted it, whoever exposed it,
+				// and an admin — who has to be able to pull anything down.
+				const mayUnshare = post.authorId === user.id || post.sharedById === user.id || user.isAdmin
+				if (!mayUnshare)
+					return error(403, 'Only the author, whoever shared it, or an admin can make this private again')
+
+				const [updated] = await db
+					.update(posts)
+					.set({ sharedAt: null, sharedById: null })
+					.where(eq(posts.id, id))
+					.returning({ sharedAt: posts.sharedAt, sharedById: posts.sharedById })
+
+				return shareState(updated)
+			} catch (err) {
+				logError(err)
+				return error(500, 'Failed to make the post private')
+			}
+		},
+		{
+			detail: {
+				summary: 'Make a shared post private again',
+				description:
+					'The public link stops working immediately. The media file itself keeps its permanent R2 address, so anyone who already saved that address keeps it — see the note in the readme.',
+			},
+			params: t.Object({ id: t.String() }),
 		},
 	)
 

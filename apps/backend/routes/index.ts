@@ -4,6 +4,7 @@ import Elysia from 'elysia'
 import AdminRoutes from './admin'
 import AuthRoutes from './auth'
 import PostRoutes from './posts'
+import PublicRoutes from './public'
 import SettingsRoutes from './settings'
 import UploadRoutes from './uploads'
 
@@ -13,5 +14,8 @@ const routes = new Elysia()
 	.group('/uploads', app => app.use(UploadRoutes))
 	.group('/admin', app => app.use(AdminRoutes))
 	.group('/settings', app => app.use(SettingsRoutes))
+	// Its own prefix, because it's the one group with no session behind it: what
+	// is reachable without logging in is exactly what is mounted here.
+	.group('/public', app => app.use(PublicRoutes))
 
 export default routes

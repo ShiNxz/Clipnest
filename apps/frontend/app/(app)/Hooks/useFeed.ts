@@ -175,6 +175,23 @@ export const deletePost = async (id: string) => {
 	if (error) throw new Error(String(error.value ?? 'Could not delete the post'))
 }
 
+/**
+ * Open a post to anyone with the link, or close it again.
+ *
+ * Not optimistic, unlike the heart: this one crosses the line out of the group,
+ * so the badge only appears once the server has actually written it. A share
+ * that silently failed but looked like it worked is the one outcome worth a
+ * spinner.
+ */
+export const setPostShared = async (id: string, shared: boolean) => {
+	const endpoint = eden.posts({ id }).share
+
+	const { data, error } = shared ? await endpoint.post() : await endpoint.delete()
+	if (error || !data) throw new Error(String(error?.value ?? 'Could not change who can see this post'))
+
+	return data
+}
+
 export const addComment = async (postId: string, body: string) => {
 	const { data, error } = await eden.posts({ id: postId }).comments.post({ body })
 	if (error || !data) throw new Error(String(error?.value ?? 'Could not post the comment'))

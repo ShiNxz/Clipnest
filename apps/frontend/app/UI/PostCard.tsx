@@ -4,6 +4,8 @@ import type { Comment, Post } from '@/app/(app)/Hooks/useFeed'
 import Avatar from '@/app/UI/Avatar'
 import Comments from '@/app/UI/Comments'
 import LikeButton from '@/app/UI/LikeButton'
+import PublicBadge from '@/app/UI/PublicBadge'
+import ShareButton from '@/app/UI/ShareButton'
 import { timeAgo } from '@/utils/format'
 import { ActionIcon, Menu } from '@mantine/core'
 import { BsThreeDots } from 'react-icons/bs'
@@ -12,14 +14,27 @@ import { IoExpand, IoTrashOutline } from 'react-icons/io5'
 type Props = {
 	post: Post
 	canDelete: boolean
+	canUnshare: boolean
 	onOpen: () => void
 	onDelete: () => void
 	onToggleLike: () => void
+	onShare: () => Promise<void>
+	onUnshare: () => Promise<void>
 	onCommentsChange: (comments: Comment[]) => void
 }
 
 /** One post in the Instagram-style column: author, media, caption, thread. */
-const PostCard = ({ post, canDelete, onOpen, onDelete, onToggleLike, onCommentsChange }: Props) => {
+const PostCard = ({
+	post,
+	canDelete,
+	canUnshare,
+	onOpen,
+	onDelete,
+	onToggleLike,
+	onShare,
+	onUnshare,
+	onCommentsChange,
+}: Props) => {
 	return (
 		<article className="overflow-hidden rounded-2xl border border-white/5 bg-ink-900 shadow-lg shadow-black/20">
 			<header className="flex items-center gap-3 px-4 py-3">
@@ -29,6 +44,11 @@ const PostCard = ({ post, canDelete, onOpen, onDelete, onToggleLike, onCommentsC
 					<p className="truncate text-sm font-semibold text-slate-100">{post.author.name}</p>
 					<p className="text-xs text-slate-500">{timeAgo(post.createdAt)}</p>
 				</div>
+
+				{/* Sits in the header rather than by the share button: a post that has
+				    left the group should read that way at a glance, without anyone
+				    having to open a menu to find out. */}
+				{post.sharedAt && <PublicBadge />}
 
 				{canDelete && (
 					<Menu position="bottom-end" withArrow>
@@ -81,12 +101,16 @@ const PostCard = ({ post, canDelete, onOpen, onDelete, onToggleLike, onCommentsC
 				<div className="flex items-start justify-between gap-3">
 					<p className="min-w-0 flex-1 whitespace-pre-wrap text-sm text-slate-200">{post.caption}</p>
 
-					<LikeButton
-						likeCount={post.likeCount}
-						likedByMe={post.likedByMe}
-						likers={post.likers}
-						onToggle={onToggleLike}
-					/>
+					<div className="flex shrink-0 items-center gap-1">
+						<LikeButton
+							likeCount={post.likeCount}
+							likedByMe={post.likedByMe}
+							likers={post.likers}
+							onToggle={onToggleLike}
+						/>
+
+						<ShareButton post={post} canUnshare={canUnshare} onShare={onShare} onUnshare={onUnshare} />
+					</div>
 				</div>
 
 				<div className="border-t border-white/5 pt-3">

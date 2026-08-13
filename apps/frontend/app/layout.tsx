@@ -1,6 +1,7 @@
 import SiteProvider from '@/app/UI/SiteProvider'
+import { siteOrigin } from '@/utils/origin'
 import { getSiteSettings } from '@/utils/site'
-import { ColorSchemeScript, MantineProvider, type MantineColorsTuple, createTheme } from '@mantine/core'
+import { ColorSchemeScript, type MantineColorsTuple, MantineProvider, createTheme } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
@@ -49,11 +50,22 @@ const theme = createTheme({
  */
 export const generateMetadata = async (): Promise<Metadata> => {
 	const { title, description } = await getSiteSettings()
+	const origin = siteOrigin()
 
 	return {
 		title,
 		description,
 		applicationName: title,
+		// Resolves the relative URLs in the metadata below, and the canonical URL
+		// on a shared post. Next warns and guesses at localhost without it.
+		...(origin ? { metadataBase: new URL(origin) } : {}),
+		/**
+		 * Nothing here is for the public — every page but one needs a session, and
+		 * a crawler would only ever index the login screen. `/p/[id]` turns this
+		 * back on for itself, so the only pages in the index are the posts someone
+		 * deliberately shared.
+		 */
+		robots: { index: false, follow: false },
 		// What a link to the site looks like when it's pasted into a chat — the
 		// same name and tagline, so a site dedicated to one group reads that way
 		// everywhere, not just once you're inside it.

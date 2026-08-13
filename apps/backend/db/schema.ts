@@ -70,9 +70,16 @@ export const posts = pgTable(
 			.references(() => users.id, { onDelete: 'cascade' }),
 		caption: text('caption').notNull().default(''),
 		kind: postKind('kind').notNull(),
-		/** R2 object key — the source of truth. `url` is derived from it. */
+		/**
+		 * R2 object key, and the only address stored.
+		 *
+		 * The public URL used to live here beside it, which meant every row was
+		 * stamped with whatever bucket domain was configured the day it was
+		 * written — and every one of them broke the day that domain changed.
+		 * `publicUrl(key)` builds it from `R2_PUBLIC_URL` on the way out instead,
+		 * so moving the bucket is an env change and nothing more.
+		 */
 		key: text('key').notNull().unique(),
-		url: text('url').notNull(),
 		mime: text('mime').notNull(),
 		/** Bytes. `number` mode is fine: JS integers hold sizes up to 9 PB exactly. */
 		size: bigint('size', { mode: 'number' }).notNull().default(0),
@@ -80,6 +87,27 @@ export const posts = pgTable(
 		height: integer('height'),
 		/** Seconds, videos only. */
 		duration: real('duration'),
+		/**
+		 * When this post was opened to the public — null for every post until
+		 * somebody deliberately shares it.
+		 *
+		 * The whole site is members-only, so this single nullable column is the one
+		 * thing standing between a post and the open internet: `/public/posts/:id`
+		 * refuses to answer for a row where it's null. A timestamp rather than a
+		 * boolean because "shared, and since when" is the question anyone auditing
+		 * this will actually ask.
+		 */
+		sharedAt: timestamp('shared_at', { withTimezone: true }),
+		/**
+		 * Who made it public — not necessarily the author, since anyone in the group
+		 * can share. Kept so the badge on the post can say whose decision it was,
+		 * and so they can take it back.
+		 *
+		 * `set null` rather than cascade: deleting the sharer must not delete
+		 * somebody else's post. It leaves the post shared but unattributed, which
+		 * only the author or an admin can then undo — both of whom already could.
+		 */
+		sharedById: uuid('shared_by_id').references(() => users.id, { onDelete: 'set null' }),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	},
 	table => ({

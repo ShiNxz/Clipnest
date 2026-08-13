@@ -7,7 +7,7 @@ import isAdmin from '../../middlewares/isAdmin'
 import { logError } from '../../utils/lib/console'
 import { hashPassword } from '../../utils/lib/password'
 import { forgetFiles } from '../../utils/lib/r2/cleanup'
-import { authorColumns, publicUser } from '../../utils/lib/serialize'
+import { authorColumns, publicUser, withUrl } from '../../utils/lib/serialize'
 
 /** Folded form used for the case-insensitive uniqueness of display names. */
 const nameKeyOf = (name: string) => name.trim().toLowerCase()
@@ -24,10 +24,12 @@ const AdminRoutes = new Elysia({
 		'/posts',
 		async ({ error }) => {
 			try {
-				return await db.query.posts.findMany({
+				const rows = await db.query.posts.findMany({
 					orderBy: [desc(posts.createdAt)],
 					with: { author: { columns: authorColumns } },
 				})
+
+				return rows.map(withUrl)
 			} catch (err) {
 				logError(err)
 				return error(500, 'Failed to load posts')
@@ -48,7 +50,7 @@ const AdminRoutes = new Elysia({
 
 				if (!updated) return error(404, 'Post not found')
 
-				return updated
+				return withUrl(updated)
 			} catch (err) {
 				logError(err)
 				return error(500, 'Failed to update the post')

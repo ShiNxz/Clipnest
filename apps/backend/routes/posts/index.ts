@@ -1,6 +1,6 @@
 import { type SQL, and, asc, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm'
 import Elysia, { t } from 'elysia'
-import { DEFAULT_FEED_SORT, FEED_SORTS, type FeedSort, POST_CAPTION_MAX_LENGTH } from 'shared'
+import { DEFAULT_FEED_SORT, FEED_SORTS, type FeedSort, POST_CAPTION_MAX_LENGTH, byTopComments } from 'shared'
 import { db } from '../../db'
 import { commentLikes, comments, postLikes, posts, users } from '../../db/schema'
 import isAuth from '../../middlewares/isAuth'
@@ -138,7 +138,7 @@ const summarizeLikes = (rows: LikeRow[], viewerId: string) => ({
 	})),
 })
 
-/** Every comment on the given posts, oldest first — a thread reads as a conversation. */
+/** Every comment on the given posts; `byTopComments` puts them in reading order. */
 const commentRowsFor = (postIds: string[]) =>
 	db.query.comments.findMany({
 		where: inArray(comments.postId, postIds),
@@ -214,10 +214,14 @@ const withSocial = async <T extends { id: string }>(page: T[], viewerId: string)
 	const likesByComment = groupBy(commentLikeRows, row => row.commentId)
 
 	return page.map(post => {
-		const comments: CommentRow[] = (commentsByPost.get(post.id) ?? []).map(comment => ({
-			...comment,
-			...summarizeCommentLikes(likesByComment.get(comment.id) ?? [], viewerId),
-		}))
+		// Sorted here rather than in the query: the tally each comment is ranked
+		// by is counted in `summarizeCommentLikes`, not by the database.
+		const comments: CommentRow[] = (commentsByPost.get(post.id) ?? [])
+			.map(comment => ({
+				...comment,
+				...summarizeCommentLikes(likesByComment.get(comment.id) ?? [], viewerId),
+			}))
+			.sort(byTopComments)
 
 		return {
 			...post,

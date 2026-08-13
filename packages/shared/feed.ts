@@ -19,3 +19,16 @@ export const FEED_SORT_LABELS: Record<FeedSort, string> = {
 	commented: 'Most commented',
 	oldest: 'Oldest first',
 }
+
+/**
+ * How a thread reads: the best-liked first, and ties broken by who said it
+ * first — so an unliked thread still reads as a conversation, top to bottom.
+ *
+ * Shared because both ends sort: the API orders what it sends, and the thread
+ * re-orders itself the moment a like lands, before the server has answered.
+ * `createdAt` arrives as a Date on the server and a string over the wire.
+ */
+export const byTopComments = (
+	a: { likeCount: number; createdAt: Date | string },
+	b: { likeCount: number; createdAt: Date | string }
+) => b.likeCount - a.likeCount || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()

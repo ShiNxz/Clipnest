@@ -9,6 +9,7 @@ import { ActionIcon, TextInput } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useState } from 'react'
 import { IoSend, IoTrashOutline } from 'react-icons/io5'
+import { byTopComments } from 'shared'
 
 const MAX_LENGTH = 1000
 
@@ -32,6 +33,10 @@ const Comments = ({ postId, postAuthorId, comments, onChange }: Props) => {
 
 	const [draft, setDraft] = useState('')
 	const [isSending, setIsSending] = useState(false)
+
+	// The API sends them in this order already; sorting again here is what makes
+	// a like re-rank the thread on the spot, without waiting for a refetch.
+	const ordered = [...comments].sort(byTopComments)
 
 	// Your own words, anything under your own post, or you run the place.
 	const canDelete = (comment: Comment) =>
@@ -101,9 +106,9 @@ const Comments = ({ postId, postAuthorId, comments, onChange }: Props) => {
 
 	return (
 		<div className="space-y-3">
-			{comments.length > 0 && (
+			{ordered.length > 0 && (
 				<div className="flex flex-col gap-2.5">
-					{comments.map(comment => (
+					{ordered.map(comment => (
 						<div key={comment.id} className="group/comment flex items-start gap-2">
 							<Avatar src={comment.author.avatarUrl} name={comment.author.name} size={26} />
 
@@ -114,16 +119,9 @@ const Comments = ({ postId, postAuthorId, comments, onChange }: Props) => {
 									<span className="truncate text-sm font-semibold text-slate-100">{comment.author.name}</span>
 									<span className="shrink-0 text-[11px] text-slate-500">{timeAgo(comment.createdAt)}</span>
 
+									{/* The heart is last, and the tally sits left of it, so it lands in
+									    the same place on every row however much else the row carries. */}
 									<div className="ml-auto flex shrink-0 items-center gap-0.5">
-										<LikeButton
-											compact
-											size={14}
-											likeCount={comment.likeCount}
-											likedByMe={comment.likedByMe}
-											likers={comment.likers}
-											onToggle={() => toggleLike(comment)}
-										/>
-
 										{canDelete(comment) && (
 											<ActionIcon
 												variant="subtle"
@@ -136,6 +134,15 @@ const Comments = ({ postId, postAuthorId, comments, onChange }: Props) => {
 												<IoTrashOutline size={14} />
 											</ActionIcon>
 										)}
+
+										<LikeButton
+											compact
+											size={14}
+											likeCount={comment.likeCount}
+											likedByMe={comment.likedByMe}
+											likers={comment.likers}
+											onToggle={() => toggleLike(comment)}
+										/>
 									</div>
 								</div>
 

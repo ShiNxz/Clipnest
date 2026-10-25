@@ -1,0 +1,18 @@
+# The image installs its own dependencies from bun.lock and builds its own output,
+# so nothing installed or built on a laptop may leak in.
+**/node_modules
+apps/frontend/.next
+apps/backend/build
+**/*.tsbuildinfo
+**/next-env.d.ts
+
+# Local PGlite database (production uses DATABASE_URL)
+apps/backend/.data
+
+# Secrets: env reaches the container at runtime from Easypanel, never through the image
+**/.env
+**/.env.*
+!**/.env.example
+
+.git
+**/.DS_Store

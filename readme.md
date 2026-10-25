@@ -121,6 +121,15 @@ Only uploading fails, with a message telling you what's missing.
 | `bun run studio` | Drizzle Studio |
 | `bunx biome check --write .` | Format + lint |
 
+### Deploy (Docker)
+
+`Dockerfile` builds one image that runs both apps (`bun start`), the way the
+Easypanel service does it: Build Path `/`, build type Dockerfile, no build or
+start command. It pins the runtimes (Bun 1.4.4 for the API, Node 26.12.1 for
+the site), so an upgrade is a `FROM` line. `API` and `WEBSITE_URL` reach the
+build as build args (they're inlined into the site); everything else is runtime
+env. The site listens on `PORT` (3000) and the API on `API_PORT` (5600).
+
 ---
 
 ## The pages

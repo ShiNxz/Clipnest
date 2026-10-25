@@ -2,7 +2,7 @@
 	"name": "clipnest",
 	"version": "1.0.0",
 	"description": "Elysia Backend + Next.js — a private clips & memes feed for friends",
-	"packageManager": "bun@1.1.12",
+	"packageManager": "bun@1.4.4",
 	"private": true,
 	"workspaces": ["apps/*", "packages/*"],
 	"scripts": {
